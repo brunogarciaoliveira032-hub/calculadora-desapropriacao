@@ -123,3 +123,30 @@ function monthsBetween(d1, d2){
      - 'mes_comercial': convenção 30/360 (mercado financeiro/US NASD) — cada
         mês vale 30 dias e o ano vale 360, incluindo o resíduo de dias.
         Mantido como opção para os casos em que a sentença/título determine
+        essa convenção.
+
+   Retorna o período em ANOS (fração), para ser multiplicado pela taxa
+   anual de juros em motor.js.
+------------------------------------------------------------------------ */
+function contarPeriodo(inicio, fim, criterio){
+  if(!inicio || !fim) return 0;
+  const d1 = new Date(inicio + 'T00:00:00');
+  const d2 = new Date(fim + 'T00:00:00');
+  if(isNaN(d1) || isNaN(d2)) return 0;
+  if(d2 <= d1) return 0;
+
+  if(criterio === 'mes_comercial'){
+    let anos1 = d1.getFullYear(), meses1 = d1.getMonth(), dias1 = d1.getDate();
+    let anos2 = d2.getFullYear(), meses2 = d2.getMonth(), dias2 = d2.getDate();
+    // Convenção 30/360: dia 31 é tratado como dia 30
+    if(dias1 === 31) dias1 = 30;
+    if(dias2 === 31 && dias1 === 30) dias2 = 30;
+    const diasTotais = (anos2 - anos1) * 360 + (meses2 - meses1) * 30 + (dias2 - dias1);
+    return diasTotais / 360;
+  }
+
+  // pro_rata_die (padrão): dias corridos ÷ 365
+  const msPorDia = 24 * 60 * 60 * 1000;
+  const diasCorridos = Math.round((d2 - d1) / msPorDia);
+  return diasCorridos / 365;
+}
