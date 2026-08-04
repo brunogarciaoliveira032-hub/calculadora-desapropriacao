@@ -28,6 +28,41 @@ const fmtData = iso => {
   return isNaN(d) ? '—' : d.toLocaleDateString('pt-BR');
 };
 
+// Lê um campo .money (formatado como "1.234.567,89") e devolve número puro
+// (1234567.89). Usado por completar.js para ler oferta/sentença/benfeitorias/
+// custas/honorários — antes chamado em vários lugares mas nunca definido.
+function moneyValue(id){
+  const bruto = ($(id) && $(id).value) || '';
+  const numerico = bruto.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+  const n = parseFloat(numerico);
+  return isFinite(n) ? n : 0;
+}
+
+// Máscara de digitação estilo "caixa eletrônico": os 2 últimos dígitos
+// digitados sempre são os centavos; o resto vira a parte inteira, com
+// separador de milhar. Assim não tem como digitar um valor sem vírgula
+// decimal por engano (ex.: "5000000" -> "50.000,00").
+function formatarMoedaInput(input){
+  let digitos = input.value.replace(/\D/g, '');
+  if(!digitos){ input.value = ''; return; }
+  digitos = digitos.replace(/^0+(?=\d)/, '');
+  while(digitos.length < 3) digitos = '0' + digitos;
+  const centavos = digitos.slice(-2);
+  const inteiro = digitos.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  input.value = inteiro + ',' + centavos;
+}
+
+// Máscara para OAB: mantém o que vier antes do primeiro dígito (ex.: "OAB/SP ")
+// como prefixo, e agrupa os dígitos de 3 em 3 com ponto (ex.: "123.456").
+function formatarOabInput(input){
+  const valor = input.value;
+  const pos = valor.search(/\d/);
+  const prefixo = pos === -1 ? valor : valor.slice(0, pos);
+  let digitos = (pos === -1 ? '' : valor.slice(pos)).replace(/\D/g, '');
+  digitos = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  input.value = prefixo + digitos;
+}
+
 /* ------------------------------------------------------------------------
    2. CONTROLE DE EXECUÇÃO / FEEDBACK NA TELA
 ------------------------------------------------------------------------ */
@@ -138,14 +173,12 @@ function contarPeriodo(inicio, fim, criterio){
   if(criterio === 'mes_comercial'){
     let anos1 = d1.getFullYear(), meses1 = d1.getMonth(), dias1 = d1.getDate();
     let anos2 = d2.getFullYear(), meses2 = d2.getMonth(), dias2 = d2.getDate();
-    // Convenção 30/360: dia 31 é tratado como dia 30
     if(dias1 === 31) dias1 = 30;
     if(dias2 === 31 && dias1 === 30) dias2 = 30;
     const diasTotais = (anos2 - anos1) * 360 + (meses2 - meses1) * 30 + (dias2 - dias1);
     return diasTotais / 360;
   }
 
-  // pro_rata_die (padrão): dias corridos ÷ 365
   const msPorDia = 24 * 60 * 60 * 1000;
   const diasCorridos = Math.round((d2 - d1) / msPorDia);
   return diasCorridos / 365;
