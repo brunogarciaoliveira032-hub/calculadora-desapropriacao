@@ -292,6 +292,117 @@
   }
   table{border-collapse:collapse; width:100%; font-size:0.85em;}
   th, td{ padding:6px 8px; border-bottom:1px solid var(--card-border); text-align:left; }
+
+  /* ---------- Importação/leitura de PDF ---------- */
+  #zonaDropPdf{
+    border: 2px dashed var(--input-border);
+    border-radius: 8px;
+    padding: 26px 18px;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  #zonaDropPdf:hover, #zonaDropPdf.arrastando{
+    border-color: var(--gold);
+    background: var(--bg-soft);
+  }
+  #zonaDropPdf strong{ color: var(--navy); display:block; margin-bottom:4px; }
+  #inputPdf{ display:none; }
+  .pdf-acoes{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 6px; }
+  #btnCancelarLeitura{
+    display:none;
+    border-color: var(--erro);
+    color: var(--erro);
+  }
+  #btnCancelarLeitura:hover{ background: var(--erro); color:#fff; }
+
+  #leitorProgressoWrap{
+    display:none;
+    margin-top: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  }
+  #leitorProgressoTrilha{
+    background: var(--bg-soft);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    overflow: hidden;
+    height: 10px;
+  }
+  #leitorProgressoBarra{
+    height: 100%;
+    width: 0%;
+    background: var(--gold);
+    transition: width .2s ease;
+  }
+  #leitorProgressoTexto{
+    font-size: 0.82em;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  #avisoTruncamento{
+    display:none;
+    margin-top: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-size: 0.85em;
+    color: var(--alerta);
+    background: var(--bg-soft);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  #historicoLeituraPdf{
+    margin-top: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-size: 0.82em;
+    color: var(--text-muted);
+  }
+  #historicoLeituraPdf ul{ list-style:none; padding:0; margin:8px 0 0; }
+  #historicoLeituraPdf li{
+    display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    padding: 6px 0; border-bottom: 1px solid var(--card-border);
+  }
+
+  #leitorRelatorio, #tabelaConferencia{
+    display:none;
+    margin-top: 18px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-size: 0.9em;
+  }
+  #leitorRelatorio.mostrar, #tabelaConferencia.mostrar{ display:block; }
+  #leitorRelatorio{
+    background: var(--bg-soft);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    line-height: 1.6;
+  }
+
+  .badge-conf{
+    display:inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.85em;
+    font-weight: 600;
+  }
+  .badge-conf.alta{ background: rgba(46,107,79,0.15); color: var(--ok); }
+  .badge-conf.media{ background: rgba(138,109,29,0.15); color: var(--alerta); }
+  .badge-conf.baixa{ background: rgba(138,51,36,0.15); color: var(--erro); }
+
+  .celula-origem{ font-size: 0.85em; color: var(--text-muted); cursor: help; }
+
+  #tabelaConferencia input.valorConferencia,
+  #tabelaConferencia select.valorConferencia{
+    margin-top:0;
+  }
+
+  .campo-preenchido-pdf{
+    background: rgba(169,129,47,0.12) !important;
+    border-color: var(--gold) !important;
+  }
 </style>
 </head>
 <body>
@@ -308,6 +419,30 @@
   <p class="lede">Apuração da diferença entre a oferta administrativa e o valor fixado em sentença (ou título executivo), com correção monetária mês a mês, juros, honorários e custas.</p>
 </header>
 <div class="hairline"></div>
+
+<fieldset class="card">
+  <legend>📄 Importar dados por PDF <span class="opt-tag">(opcional)</span></legend>
+  <hr class="legend-rule">
+  <div id="zonaDropPdf" tabindex="0" role="button" aria-label="Anexar PDF do processo">
+    <strong>Solte aqui o(s) PDF(s) do processo</strong>
+    ou clique / toque para escolher o arquivo (aceita vários de uma vez)
+  </div>
+  <input type="file" id="inputPdf" accept="application/pdf,.pdf" multiple>
+  <div class="pdf-acoes">
+    <button type="button" id="btnAnexarPdf">Anexar PDF</button>
+    <button type="button" id="btnCancelarLeitura">Cancelar leitura</button>
+  </div>
+
+  <div id="leitorProgressoWrap">
+    <div id="leitorProgressoTrilha"><div id="leitorProgressoBarra"></div></div>
+    <div id="leitorProgressoTexto"></div>
+  </div>
+
+  <div id="avisoTruncamento"></div>
+  <div id="leitorRelatorio"></div>
+  <div id="tabelaConferencia"></div>
+  <div id="historicoLeituraPdf"></div>
+</fieldset>
 
 <fieldset class="card">
   <legend><span class="art-badge">Art. 1º</span> Identificação do Processo</legend>
@@ -386,7 +521,7 @@
 <fieldset class="card">
   <legend><span class="art-badge">Art. 4º</span> Juros Compensatórios</legend>
   <hr class="legend-rule">
-  <label><input type="checkbox" id="aplicarJurosComp" checked style="width:auto"> Aplicar juros compensatórios</label>
+  <label><input type="checkbox" id="aplicarJurosComp" style="width:auto"> Aplicar juros compensatórios <span class="opt-tag">(deixe desmarcado se não for usar este item)</span></label>
   <div class="faixa">
     <input type="date" id="faixaCompInicio" title="Início">
     <input type="date" id="faixaCompFim" title="Fim">
@@ -476,10 +611,12 @@
   }
 </script>
 
-<!-- Bibliotecas de terceiro (precisam de internet; usadas só por PDF/Excel) -->
+<!-- Bibliotecas de terceiro (precisam de internet; usadas só por PDF/Excel/leitura) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
 
 <!-- As 8 partes originais do zip, na ordem de dependência já documentada nos cabeçalhos -->
 <script src="js/util.js"></script>
@@ -491,6 +628,15 @@
 
 <!-- Peças que faltavam, escritas agora só para o teste -->
 <script src="js/completar.js"></script>
+
+<!-- Leitura de PDF, classificação/extração, inteligência jurídica e painel de
+     conferência/preenchimento — leitorPdf.js precisa de pdfjsLib/Tesseract
+     (acima) e util.js ($, toast); painelConferencia.js orquestra tudo e
+     precisa vir por último deste grupo. -->
+<script src="js/leitorPdf.js"></script>
+<script src="js/classificadorExtrator.js"></script>
+<script src="js/inteligenciaJuridica.js"></script>
+<script src="js/painelConferencia.js"></script>
 
 <!-- Exportações (dependem de tudo acima) -->
 <script src="js/exportarPDF.js"></script>
