@@ -86,14 +86,32 @@ function adicionarLevantamento(){
 
 /* ------------------------------------------------------------------------
    3. bloqueadoPorAuditoria — compartilhada por PDF/Excel/impressão
+
+   AJUSTE (a pedido do usuário — "campos não obrigatórios"): antes, qualquer
+   item de nível 'erro' na revisão automática BLOQUEAVA totalmente a
+   exportação (alert() + return true, sem opção de prosseguir). Isso supunha
+   que todo mundo preenche o formulário inteiro — mas quem usa só alguns
+   campos (ex.: só quer a diferença corrigida, sem mexer em juros
+   compensatórios/depósito) esbarrava nesse bloqueio mesmo sem ter a menor
+   intenção de usar aquele campo.
+   AGORA: os avisos continuam aparecendo (e o painel de auditoria continua
+   sendo destacado/rolado até a vista), mas em vez de um alert() que impede
+   a exportação, é uma confirmação — a pessoa lê o(s) ponto(s) levantado(s)
+   e decide se quer prosseguir mesmo assim ou revisar antes. Nenhum campo
+   fica "trancado": ela sempre pode gerar o relatório com o que preencheu.
 ------------------------------------------------------------------------ */
 function bloqueadoPorAuditoria(){
-  const temErro = ULTIMO_CALCULO && (ULTIMO_CALCULO.auditoria || []).some(i => i.nivel === 'erro');
-  if(temErro){
-    alert('A revisão técnica automática encontrou erro(s) crítico(s). Corrija antes de exportar.');
+  const erros = ULTIMO_CALCULO ? (ULTIMO_CALCULO.auditoria || []).filter(i => i.nivel === 'erro') : [];
+  if(erros.length){
     const painel = $('painelAuditoria');
     if(painel){ painel.classList.add('destaque'); painel.scrollIntoView({behavior:'smooth'}); }
-    return true;
+    const lista = erros.map(i => '• ' + i.msg).join('\n\n');
+    const prosseguir = confirm(
+      'A revisão técnica automática encontrou o(s) seguinte(s) ponto(s):\n\n' + lista +
+      '\n\nSe algum desses itens não se aplica ao seu caso (ex.: um campo que você não usa), pode ignorar.\n\n' +
+      'Clique em OK para gerar o relatório mesmo assim, ou Cancelar para revisar antes.'
+    );
+    return !prosseguir;
   }
   return false;
 }
@@ -119,7 +137,27 @@ function resolverAncoraCorrecao(cfg){
     if(el && el.value) return el.value;
   }
   return null; // nenhuma data preenchida: quem chamar decide o fallback final (dataBase)
-}/* ------------------------------------------------------------------------
+}
+
+/* ------------------------------------------------------------------------
+   3C. DATA-BASE EFETIVA DO CÁLCULO
+   Se já houve pagamento (quitação — Art. 2º, "Data de pagamento"), a
+   correção monetária e os juros devem parar nessa data, não na data-base
+   genérica configurada, pois não há sentido em corrigir monetariamente um
+   valor além da data em que ele efetivamente foi pago. Na ausência de
+   pagamento informado, usa a própria data-base (ou hoje, se também estiver
+   em branco) — mesmo fallback já usado para a variável `dataBase` logo
+   acima em calcular(). Esta função era chamada por calcular() mas nunca
+   tinha sido definida (bug pré-existente: toda tentativa de calcular
+   lançava "dataBaseEfetiva is not defined" e o cálculo não completava).
+------------------------------------------------------------------------ */
+function dataBaseEfetiva(){
+  const pagamento = $('dataPagamento').value;
+  if(pagamento) return pagamento;
+  return $('dataBase').value || new Date().toISOString().slice(0,10);
+}
+
+/* ------------------------------------------------------------------------
    4. calcular() — orquestração principal
 ------------------------------------------------------------------------ */
 async function calcular(){
@@ -333,12 +371,14 @@ function renderizarResultado(c){
   $('resumoResultado').innerHTML = `
     ${avisoDiferencaNegativa}
     ${avisoAtualizacaoIndice}
-    <p><b>Diferença apurada:</b> ${fmt(c.valores.diferenca)}</p>
-    <p><b>Correção monetária:</b> ${fmt(c.valores.correcao)} — ${c.descricoes.correcao}</p>
-    <p><b>Juros compensatórios:</b> ${fmt(c.valores.jurosComp)} — ${c.descricoes.jurosComp}</p>
-    <p><b>Juros moratórios:</b> ${fmt(c.valores.juros)} — ${c.descricoes.juros}</p>
-    <p><b>Depósito corrigido (dedução):</b> ${fmt(c.valores.depositoCorrigido)}</p>
-    <p><b>Honorários:</b> ${fmt(c.valores.honorVal)} — ${c.descricoes.honor}</p>
+    ${(c.valores.oferta !== 0 || c.valores.sentenca !== 0) ? `<p><b>Diferença apurada:</b> ${fmt(c.valores.diferenca)}</p>` : ''}
+    ${Math.abs(c.valores.correcao) > 0.004 ? `<p><b>Correção monetária:</b> ${fmt(c.valores.correcao)} — ${c.descricoes.correcao}</p>` : ''}
+    ${c.valores.jurosComp > 0 ? `<p><b>Juros compensatórios:</b> ${fmt(c.valores.jurosComp)} — ${c.descricoes.jurosComp}</p>` : ''}
+    ${c.valores.juros > 0 ? `<p><b>Juros moratórios:</b> ${fmt(c.valores.juros)} — ${c.descricoes.juros}</p>` : ''}
+    ${c.valores.depositoCorrigido > 0 ? `<p><b>Depósito corrigido (dedução):</b> ${fmt(c.valores.depositoCorrigido)}</p>` : ''}
+    ${c.valores.honorVal > 0 ? `<p><b>Honorários:</b> ${fmt(c.valores.honorVal)} — ${c.descricoes.honor}</p>` : ''}
+    ${c.valores.custas > 0 ? `<p><b>Custas processuais:</b> ${fmt(c.valores.custas)}</p>` : ''}
+    ${c.valores.honorContratualVal > 0 ? `<p><b>Honorários contratuais (informativo):</b> ${fmt(c.valores.honorContratualVal)}</p>` : ''}
     <p style="font-size:1.2em"><b>TOTAL: ${fmt(c.valores.total)}</b></p>
   `;
   $('tabelaMemoria').innerHTML = '<table border="1" cellpadding="4"><tr><th>Competência</th><th>Taxa</th><th>Fator acum.</th><th>Valor corrigido</th><th>Fonte</th></tr>' +
