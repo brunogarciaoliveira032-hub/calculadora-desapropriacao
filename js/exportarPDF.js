@@ -80,16 +80,20 @@ async function gerarPdf(){
 
     doc.setFont('helvetica','normal'); doc.setFontSize(10);
     const nomeIndice = NOMES_INDICE[c.fonteInfo && c.fonteInfo.indice] || '—';
+    const partesDatas = [
+      c.datas.dataOferta ? 'Data da oferta: ' + fmtData(c.datas.dataOferta) : null,
+      c.datas.dataSentenca ? 'Data da sentença: ' + fmtData(c.datas.dataSentenca) : null,
+      c.datas.dataPagamento
+        ? 'Data do efetivo pagamento (quitação): ' + fmtData(c.datas.dataPagamento)
+        : (c.datas.dataBase ? 'Data-base: ' + fmtData(c.datas.dataBase) : null)
+    ].filter(Boolean).join('   |   ');
     const infoLinhas = [
       c.identificacao.numeroProcesso ? 'Processo: ' + c.identificacao.numeroProcesso : null,
       c.identificacao.comarca ? 'Comarca/Vara: ' + c.identificacao.comarca : null,
       c.identificacao.expropriante ? 'Autor (expropriante): ' + c.identificacao.expropriante : null,
       c.identificacao.expropriado ? 'Réu (expropriado[a]): ' + c.identificacao.expropriado : null,
-      'Data da oferta: ' + fmtData(c.datas.dataOferta) + '   |   Data da sentença: ' + fmtData(c.datas.dataSentenca) + '   |   ' +
-        (c.datas.dataPagamento
-          ? 'Data do efetivo pagamento (quitação): ' + fmtData(c.datas.dataPagamento)
-          : 'Data-base: ' + fmtData(c.datas.dataBase)),
-      'Índice de correção utilizado: ' + nomeIndice + '   |   Fonte oficial: Banco Central do Brasil (SGS)'
+      partesDatas || null,
+      Math.abs(c.valores.correcao) > 0.004 ? 'Índice de correção utilizado: ' + nomeIndice + '   |   Fonte oficial: Banco Central do Brasil (SGS)' : null
     ].filter(Boolean);
     infoLinhas.forEach(linha => {
       const linhasQuebradas = doc.splitTextToSize(linha, pageWidth - margin*2);
@@ -103,15 +107,15 @@ async function gerarPdf(){
       margin: { left: margin, right: margin },
       head: [['Item', 'Valor']],
       body: [
-        ['Valor da oferta', fmt(c.valores.oferta)],
-        ['Valor fixado em sentença', fmt(c.valores.sentenca)],
-        ['Diferença apurada', fmt(c.valores.diferenca)],
+        c.valores.oferta !== 0 ? ['Valor da oferta', fmt(c.valores.oferta)] : null,
+        c.valores.sentenca !== 0 ? ['Valor fixado em sentença', fmt(c.valores.sentenca)] : null,
+        (c.valores.oferta !== 0 || c.valores.sentenca !== 0) ? ['Diferença apurada', fmt(c.valores.diferenca)] : null,
         c.valores.benfeitoriasNominal > 0 ? ['Benfeitorias indenizáveis (valor nominal — a correção monetária deste valor já está somada na linha "Correção monetária" abaixo)', fmt(c.valores.benfeitoriasNominal)] : null,
-        ['Correção monetária (' + c.descricoes.correcao + ')', fmt(c.valores.correcao)],
+        Math.abs(c.valores.correcao) > 0.004 ? ['Correção monetária (' + c.descricoes.correcao + ')', fmt(c.valores.correcao)] : null,
         c.valores.jurosComp > 0 ? ['Juros compensatórios (' + c.descricoes.jurosComp + ')', fmt(c.valores.jurosComp)] : null,
-        ['Juros moratórios (' + c.descricoes.juros + ')', fmt(c.valores.juros)],
+        c.valores.juros > 0 ? ['Juros moratórios (' + c.descricoes.juros + ')', fmt(c.valores.juros)] : null,
         c.valores.depositoCorrigido > 0 ? ['Depósito judicial corrigido (dedução) (' + c.descricoes.deposito + ')', '- ' + fmt(c.valores.depositoCorrigido)] : null,
-        ['Honorários sucumbenciais (' + c.descricoes.honor + ')', fmt(c.valores.honorVal)],
+        c.valores.honorVal > 0 ? ['Honorários sucumbenciais (' + c.descricoes.honor + ')', fmt(c.valores.honorVal)] : null,
         c.valores.custas > 0 ? ['Custas processuais', fmt(c.valores.custas)] : null,
         c.valores.honorContratualVal > 0 ? ['Honorários contratuais (informativo)', fmt(c.valores.honorContratualVal)] : null
       ].filter(Boolean),
