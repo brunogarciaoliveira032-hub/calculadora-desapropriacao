@@ -322,12 +322,12 @@
         <option value="outro">Outro</option>
       </select>
     </label></div>
-    <div><label>Nº do processo <input id="numeroProcesso" value="0001234-56.2024.8.26.0100"></label></div>
+    <div><label>Nº do processo <input id="numeroProcesso"></label></div>
   </div>
   <div class="row">
-    <div><label>Escritório <input id="escritorioNome" value="Silva &amp; Associados"></label></div>
-    <div><label>Advogado(a) <input id="advogadoNome" value="Dra. Ana Silva"></label></div>
-    <div><label>OAB <input id="advogadoOAB" value="OAB/SP 123.456"></label></div>
+    <div><label>Escritório <input id="escritorioNome"></label></div>
+    <div><label>Advogado(a) <input id="advogadoNome"></label></div>
+    <div><label>OAB <input id="advogadoOAB"></label></div>
   </div>
   <div class="row">
     <div><label>Comarca/Vara <input id="comarca"></label></div>
@@ -341,17 +341,17 @@
   <legend><span class="art-badge">Art. 2º</span> Valores e Datas</legend>
   <hr class="legend-rule">
   <div class="row">
-    <div><label>Valor da oferta <input id="valorOferta" class="money" value="100.000,00"></label></div>
-    <div><label>Valor da sentença <input id="valorSentenca" class="money" value="180.000,00"></label></div>
-    <div><label>Benfeitorias <input id="valorBenfeitorias" class="money" value="0,00"></label></div>
+    <div><label>Valor da oferta <input id="valorOferta" class="money" placeholder="0,00"></label></div>
+    <div><label>Valor da sentença <input id="valorSentenca" class="money" placeholder="0,00"></label></div>
+    <div><label>Benfeitorias <input id="valorBenfeitorias" class="money" placeholder="0,00"></label></div>
   </div>
   <div class="row">
-    <div><label>Data da oferta <input type="date" id="dataOferta" value="2020-01-10"></label></div>
-    <div><label>Data da sentença <input type="date" id="dataSentenca" value="2023-06-15"></label></div>
-    <div><label>Data da imissão na posse <input type="date" id="dataImissao" value="2020-02-01"></label></div>
+    <div><label>Data da oferta <input type="date" id="dataOferta"></label></div>
+    <div><label>Data da sentença <input type="date" id="dataSentenca"></label></div>
+    <div><label>Data da imissão na posse <input type="date" id="dataImissao"></label></div>
   </div>
   <div class="row">
-    <div><label>Data-base <input type="date" id="dataBase" value="2026-08-01"></label></div>
+    <div><label>Data-base <input type="date" id="dataBase"></label></div>
     <div><label>Data de pagamento <span class="opt-tag">(opcional)</span> <input type="date" id="dataPagamento"></label></div>
   </div>
 </fieldset>
@@ -370,7 +370,7 @@
         <option value="sentenca">Conforme sentença (transcrever trecho abaixo)</option>
       </select>
     </label></div>
-    <div><label>Taxa manual (% a.m.) <input type="number" step="0.01" id="taxaManual" value="0.5"></label></div>
+    <div><label>Taxa manual (% a.m.) <input type="number" step="0.01" id="taxaManual" placeholder="0,00"></label></div>
     <div><label>Critério de contagem
       <select id="criterio">
         <option value="pro_rata_die">Pro rata die</option>
@@ -421,9 +421,9 @@
   <legend><span class="art-badge">Art. 7º</span> Honorários e Custas</legend>
   <hr class="legend-rule">
   <div class="row">
-    <div><label>% Honorários sucumbenciais <input type="number" step="0.1" id="percentualHonor" value="10"></label></div>
-    <div><label>Custas processuais <input id="custas" class="money" value="0,00"></label></div>
-    <div><label>Honorários contratuais (informativo) <input id="honorContratualVal" class="money" value="0,00"></label></div>
+    <div><label>% Honorários sucumbenciais <input type="number" step="0.1" id="percentualHonor" placeholder="0,0"></label></div>
+    <div><label>Custas processuais <input id="custas" class="money" placeholder="0,00"></label></div>
+    <div><label>Honorários contratuais (informativo) <input id="honorContratualVal" class="money" placeholder="0,00"></label></div>
   </div>
   <div class="row">
     <div><label>Limite % honorários <span class="opt-tag">(opcional — só gera alerta se preenchido)</span> <input type="number" step="0.1" id="limiteHonorPercentual" value=""></label></div>
