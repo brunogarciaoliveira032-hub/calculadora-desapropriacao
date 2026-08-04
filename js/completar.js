@@ -362,4 +362,10 @@ function renderizarResultado(c){
 
 document.addEventListener('DOMContentLoaded', () => {
   $('btnCalcular').addEventListener('click', calcular);
+
+  document.querySelectorAll('input.money').forEach(el => {
+    el.addEventListener('input', () => formatarMoedaInput(el));
+  });
+  const campoOab = $('advogadoOAB');
+  if(campoOab) campoOab.addEventListener('input', () => formatarOabInput(campoOab));
 });
