@@ -387,16 +387,22 @@
   <legend><span class="art-badge">Art. 4º</span> Juros Compensatórios</legend>
   <hr class="legend-rule">
   <label><input type="checkbox" id="aplicarJurosComp" checked style="width:auto"> Aplicar juros compensatórios</label>
-  <div id="faixasJurosComp"></div>
-  <button type="button" onclick="adicionarFaixa('faixasJurosComp')">+ faixa</button>
+  <div class="faixa">
+    <input type="date" id="faixaCompInicio" title="Início">
+    <input type="date" id="faixaCompFim" title="Fim">
+    <input type="number" step="0.01" id="faixaCompTaxa" placeholder="% a.a." style="width:70px">
+  </div>
   <label><input type="checkbox" id="permitirFallback12" style="width:auto"> Permitir taxa padrão de 12% a.a. quando nenhuma faixa for configurada (desmarcado por padrão — recomendado para uso profissional: configure faixas explícitas em vez de depender do valor padrão)</label>
 </fieldset>
 
 <fieldset class="card">
   <legend><span class="art-badge">Art. 5º</span> Juros Moratórios</legend>
   <hr class="legend-rule">
-  <div id="faixasJurosMora"></div>
-  <button type="button" onclick="adicionarFaixa('faixasJurosMora')">+ faixa</button>
+  <div class="faixa">
+    <input type="date" id="faixaMoraInicio" title="Início">
+    <input type="date" id="faixaMoraFim" title="Fim">
+    <input type="number" step="0.01" id="faixaMoraTaxa" placeholder="% a.a." style="width:70px">
+  </div>
 </fieldset>
 
 <fieldset class="card">
