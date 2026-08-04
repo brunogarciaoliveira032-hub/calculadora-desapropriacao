@@ -152,20 +152,79 @@ function extrairCampos(paginas){
 
   // --- Valor pericial (informativo — some para a inteligência jurídica comparar) ---
   const paginasLaudo = paginasDoTipo(paginas, 'laudoPericial');
+  const anchorsPericial = [
+    /valor (?:da )?(?:indenização|avaliação)/i,
+    /concluiu .{0,20}(?:indenização|avaliação) de/i
+  ];
   for(const p of paginasLaudo){
-    const r = buscarProximo(p.texto || '', /valor (?:da )?(?:indenização|avaliação)/i, REGEX_VALOR_RS, 100);
-    if(r){ definir('valorPericial', { valor: parseValorMoedaBR(r.valorBruto), confianca: 0.6, pagina: p, trecho: r.trecho }); break; }
+    for(const ancora of anchorsPericial){
+      const r = buscarProximo(p.texto || '', ancora, REGEX_VALOR_RS, 100);
+      if(r){ definir('valorPericial', { valor: parseValorMoedaBR(r.valorBruto), confianca: 0.6, pagina: p, trecho: r.trecho }); break; }
+    }
+    if(campos.valorPericial) break;
+  }
+  // Fallback amplo: "Indenização R$X" sem verbo nenhum na frente (comum em
+  // tabelas-resumo). Janela curta (40) e confiança baixa porque, sem um
+  // verbo/âncora mais específico, o risco de pegar o número errado é maior.
+  if(!campos.valorPericial){
+    for(const p of paginasLaudo){
+      const r = buscarProximo(p.texto || '', /\bindeniza[çc][ãa]o\b\s*(?:de\s*)?/i, REGEX_VALOR_RS, 40);
+      if(r){
+        definir('valorPericial', {
+          valor: parseValorMoedaBR(r.valorBruto), confianca: 0.4, pagina: p, trecho: r.trecho,
+          observacao: 'Encontrado por padrão amplo dentro da seção de laudo pericial — confirme se é de fato a conclusão de valor do laudo.'
+        });
+        break;
+      }
+    }
   }
 
-  // --- Valor da sentença / indenização fixada (prioriza páginas de sentença) ---
+  // --- Valor da sentença / indenização fixada ---
+  // Camada 1 (alta confiança): só nas páginas classificadas como
+  // sentença/acórdão, com âncoras específicas de dispositivo judicial.
   const paginasSentenca = paginasDoTipo(paginas, 'sentenca');
-  const anchorsIndenizacao = [/fixo a indenização em/i, /condeno .{0,40} ao pagamento de/i, /valor da indenização/i, /arbitro o valor da indenização em/i];
+  const anchorsIndenizacao = [
+    /fixo a indenização em/i,
+    /condeno .{0,40} ao pagamento de/i,
+    /valor da indenização/i,
+    /arbitro o valor da indenização em/i,
+    /indeniza[çc][ãa]o .{0,20}(?:foi )?fixada em/i,
+    /indeniza[çc][ãa]o .{0,20}arbitrada em/i
+  ];
   for(const p of paginasSentenca){
     for(const ancora of anchorsIndenizacao){
       const r = buscarProximo(p.texto || '', ancora, REGEX_VALOR_RS, 100);
       if(r){ definir('valorSentenca', { valor: parseValorMoedaBR(r.valorBruto), confianca: 0.75, pagina: p, trecho: r.trecho }); break; }
     }
     if(campos.valorSentenca) break;
+  }
+
+  // Camada 2 (fallback, confiança mais baixa): muitos documentos — sobretudo
+  // resumos e tabelas pré-sentença — registram o valor da indenização sem
+  // usar a palavra "sentença" em lugar nenhum, então a página nunca é
+  // classificada como `sentenca` e a Camada 1 acima nunca roda. Aqui
+  // varremos TODAS as páginas com âncoras mais genéricas. Confiança bem mais
+  // baixa e observação explícita, porque sem o contexto de página de
+  // sentença o risco de pegar um valor mencionado de passagem (não o final)
+  // é maior.
+  if(!campos.valorSentenca){
+    const anchorsIndenizacaoAmplo = [
+      /concluiu .{0,20}indeniza[çc][ãa]o de/i,
+      /\bindeniza[çc][ãa]o\b\s*(?:de\s*)?/i
+    ];
+    for(const p of paginas){
+      for(const ancora of anchorsIndenizacaoAmplo){
+        const r = buscarProximo(p.texto || '', ancora, REGEX_VALOR_RS, 40);
+        if(r){
+          definir('valorSentenca', {
+            valor: parseValorMoedaBR(r.valorBruto), confianca: 0.4, pagina: p, trecho: r.trecho,
+            observacao: 'Encontrado por padrão amplo — a página não foi classificada como sentença/acórdão. Confira manualmente se este é de fato o valor final da indenização.'
+          });
+          break;
+        }
+      }
+      if(campos.valorSentenca) break;
+    }
   }
 
   // --- Data da oferta / sentença / imissão na posse ---
