@@ -22,6 +22,7 @@ function aplicarInteligenciaJuridica(campos, paginas){
   detectarReformaAcordao(campos, paginas);
   sinalizarIndiceAmbiguo(campos, paginas);
   distinguirValoresDeReferencia(campos);
+  inferirOfertaDoDeposito(campos);
   return campos;
 }
 
@@ -107,6 +108,28 @@ function distinguirValoresDeReferencia(campos){
   if(!campos.valorSentenca && campos.valorPericial){
     campos._alertaValorPericialDisponivel = {
       mensagem: 'Não foi localizado o valor da indenização em sentença/acórdão, mas há um valor de laudo pericial disponível como referência (não preenchido automaticamente — o laudo é prova técnica, não o título que fixa a indenização).'
+    };
+  }
+}
+
+/* ------------------------------------------------------------------------
+   4. OFERTA NÃO MENCIONADA EXPLICITAMENTE, MAS HÁ DEPÓSITO JUDICIAL
+   Em desapropriação direta (DL 3.365/41), o depósito prévio costuma ter o
+   mesmo valor da oferta administrativa/inicial — mas são conceitos
+   juridicamente distintos, então nunca promovemos um pelo outro com
+   confiança alta. Se a palavra "oferta" não apareceu em lugar nenhum das
+   peças mas há um valor de depósito extraído, preenchemos valorOferta com
+   esse valor, com confiança baixa e observação explícita: o advogado
+   confirma na conferência (Fase 6) se de fato coincidem neste processo.
+------------------------------------------------------------------------ */
+function inferirOfertaDoDeposito(campos){
+  if(!campos.valorOferta && campos.depositoValor){
+    campos.valorOferta = {
+      valor: campos.depositoValor.valor,
+      confianca: 0.35,
+      pagina: campos.depositoValor.pagina,
+      trecho: campos.depositoValor.trecho,
+      observacao: 'Inferido do depósito judicial inicial — a palavra "oferta" não foi encontrada nas peças. Depósito e oferta costumam ter o mesmo valor no rito do DL 3.365/41, mas são conceitos distintos; confirme antes de usar.'
     };
   }
 }
