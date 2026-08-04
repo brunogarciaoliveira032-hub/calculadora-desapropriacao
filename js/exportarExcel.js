@@ -48,19 +48,25 @@ async function exportarExcel(){
     const agora = new Date();
 
     /* ---------------- Planilha 1: Resumo ---------------- */
+    // AJUSTE (a pedido do usuário — "só sair no relatório o que ela usa"):
+    // antes, algumas linhas "core" apareciam sempre, mesmo zeradas (oferta,
+    // sentença, diferença, correção, juros moratórios). Agora TODAS as
+    // linhas de item só aparecem se o valor correspondente foi de fato
+    // usado/preenchido — mesmo padrão já aplicado a benfeitorias, juros
+    // compensatórios, depósito, honorários e custas.
     const linhasItens = [
-      ['Valor da oferta', c.valores.oferta],
-      ['Valor fixado em sentença', c.valores.sentenca],
-      ['Diferença apurada', c.valores.diferenca],
-      ['Benfeitorias indenizáveis (valor nominal — correção já somada na linha "Correção monetária")', c.valores.benfeitoriasNominal],
-      ['Correção monetária', c.valores.correcao],
-      ['Juros compensatórios', c.valores.jurosComp],
-      ['Juros moratórios', c.valores.juros],
-      ['Depósito judicial corrigido (dedução)', -c.valores.depositoCorrigido],
-      ['Honorários sucumbenciais', c.valores.honorVal],
-      ['Custas processuais', c.valores.custas],
-      ['Honorários contratuais (informativo)', c.valores.honorContratualVal]
-    ];
+      c.valores.oferta !== 0 ? ['Valor da oferta', c.valores.oferta] : null,
+      c.valores.sentenca !== 0 ? ['Valor fixado em sentença', c.valores.sentenca] : null,
+      (c.valores.oferta !== 0 || c.valores.sentenca !== 0) ? ['Diferença apurada', c.valores.diferenca] : null,
+      c.valores.benfeitoriasNominal > 0 ? ['Benfeitorias indenizáveis (valor nominal — correção já somada na linha "Correção monetária")', c.valores.benfeitoriasNominal] : null,
+      Math.abs(c.valores.correcao) > 0.004 ? ['Correção monetária', c.valores.correcao] : null,
+      c.valores.jurosComp > 0 ? ['Juros compensatórios', c.valores.jurosComp] : null,
+      c.valores.juros > 0 ? ['Juros moratórios', c.valores.juros] : null,
+      c.valores.depositoCorrigido > 0 ? ['Depósito judicial corrigido (dedução)', -c.valores.depositoCorrigido] : null,
+      c.valores.honorVal > 0 ? ['Honorários sucumbenciais', c.valores.honorVal] : null,
+      c.valores.custas > 0 ? ['Custas processuais', c.valores.custas] : null,
+      c.valores.honorContratualVal > 0 ? ['Honorários contratuais (informativo)', c.valores.honorContratualVal] : null
+    ].filter(Boolean);
 
     const resumo = [
       ['DEMONSTRATIVO DE CÁLCULO — DESAPROPRIAÇÃO'],
