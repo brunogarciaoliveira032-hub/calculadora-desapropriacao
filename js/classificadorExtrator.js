@@ -80,15 +80,25 @@ function parseDataBRParaIso(str){
 }
 
 // Procura o primeiro casamento de `regexValor` dentro de uma janela de
-// `janela` caracteres a partir do fim do casamento de `regexAncora`.
+// `janela` caracteres a partir do fim de QUALQUER casamento de `regexAncora`
+// no texto — não só o primeiro. Isso importa porque a mesma palavra-âncora
+// (ex.: "honorários sucumbenciais") pode aparecer antes, num trecho
+// narrativo sem valor por perto, e de novo mais adiante já associada ao
+// valor real (ex.: na tabela da sentença). Parar na primeira ocorrência sem
+// valor perdia o campo por completo mesmo com o dado presente na página.
 function buscarProximo(texto, regexAncora, regexValor, janela){
-  const ma = regexAncora.exec(texto);
-  if(!ma) return null;
-  const inicio = ma.index + ma[0].length;
-  const trecho = texto.slice(inicio, inicio + janela);
-  const mv = regexValor.exec(trecho);
-  if(!mv) return null;
-  return { valorBruto: mv[1] !== undefined ? mv[1] : mv[0], trecho: (ma[0] + trecho.slice(0, mv.index + mv[0].length)).slice(-160) };
+  const global = new RegExp(regexAncora.source, regexAncora.flags.includes('g') ? regexAncora.flags : regexAncora.flags + 'g');
+  let ma;
+  while((ma = global.exec(texto)) !== null){
+    const inicio = ma.index + ma[0].length;
+    const trecho = texto.slice(inicio, inicio + janela);
+    const mv = regexValor.exec(trecho);
+    if(mv){
+      return { valorBruto: mv[1] !== undefined ? mv[1] : mv[0], trecho: (ma[0] + trecho.slice(0, mv.index + mv[0].length)).slice(-160) };
+    }
+    if(ma.index === global.lastIndex) global.lastIndex++; // evita loop infinito em casamento de tamanho zero
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------------
@@ -205,8 +215,11 @@ function extrairCampos(paginas){
     definir('existeDeposito', { valor: true, confianca: 0.7, pagina: p, trecho: contexto(p.texto, 0, 100) });
     const rValor = buscarProximo(p.texto || '', /dep[óo]sito(?: judicial)?/i, REGEX_VALOR_RS, 100);
     if(rValor) definir('depositoValor', { valor: parseValorMoedaBR(rValor.valorBruto), confianca: 0.55, pagina: p, trecho: rValor.trecho });
-    const mData = REGEX_DATA.exec(p.texto || '');
-    if(mData) definir('depositoData', { valor: parseDataBRParaIso(mData[1]), confianca: 0.45, pagina: p, trecho: contexto(p.texto, mData.index, 60) });
+    const rData = buscarProximo(p.texto || '', /dep[óo]sito(?: judicial)?/i, REGEX_DATA, 80);
+    if(rData){
+      const isoDeposito = parseDataBRParaIso(rData.valorBruto);
+      if(isoDeposito) definir('depositoData', { valor: isoDeposito, confianca: 0.45, pagina: p, trecho: rData.trecho });
+    }
   }
 
   return campos;
